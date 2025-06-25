@@ -1,0 +1,287 @@
+Simple CRUD Operation with Java Spring Boot
+Let me guide you through creating a basic CRUD (Create, Read, Update, Delete) application using Spring Boot. We'll create a simple Book management system.
+
+Step 1: Set Up the Project
+Create a new Spring Boot project using:
+
+Spring Initializr
+
+Or your IDE's Spring Boot project wizard
+
+Select these dependencies:
+
+Spring Web
+
+Spring Data JPA
+
+H2 Database (for simplicity, we'll use in-memory DB)
+
+Step 2: Project Structure
+Here's the basic structure we'll create:
+
+text
+src/
+├── main/
+│   ├── java/
+│   │   └── com/
+│   │       └── example/
+│   │           └── bookstore/
+│   │               ├── controller/
+│   │               │   └── BookController.java
+│   │               ├── model/
+│   │               │   └── Book.java
+│   │               ├── repository/
+│   │               │   └── BookRepository.java
+│   │               └── BookstoreApplication.java
+│   └── resources/
+│       └── application.properties
+Step 3: Create the Entity
+src/main/java/com/example/bookstore/model/Book.java:
+
+java
+package com.example.bookstore.model;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "books")
+public class Book {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false)
+    private String title;
+    
+    @Column(nullable = false)
+    private String author;
+    
+    @Column(nullable = false)
+    private Integer publicationYear;
+    
+    // Constructors
+    public Book() {}
+    
+    public Book(String title, String author, Integer publicationYear) {
+        this.title = title;
+        this.author = author;
+        this.publicationYear = publicationYear;
+    }
+    
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+    
+    public void setId(Long id) {
+        this.id = id;
+    }
+    
+    public String getTitle() {
+        return title;
+    }
+    
+    public void setTitle(String title) {
+        this.title = title;
+    }
+    
+    public String getAuthor() {
+        return author;
+    }
+    
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+    
+    public Integer getPublicationYear() {
+        return publicationYear;
+    }
+    
+    public void setPublicationYear(Integer publicationYear) {
+        this.publicationYear = publicationYear;
+    }
+}
+Step 4: Create the Repository
+src/main/java/com/example/bookstore/repository/BookRepository.java:
+
+java
+package com.example.bookstore.repository;
+
+import com.example.bookstore.model.Book;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface BookRepository extends JpaRepository<Book, Long> {
+}
+Step 5: Create the Controller
+src/main/java/com/example/bookstore/controller/BookController.java:
+
+java
+package com.example.bookstore.controller;
+
+import com.example.bookstore.model.Book;
+import com.example.bookstore.repository.BookRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/books")
+public class BookController {
+
+    @Autowired
+    private BookRepository bookRepository;
+
+    // Create
+    @PostMapping
+    public ResponseEntity<Book> createBook(@RequestBody Book book) {
+        Book savedBook = bookRepository.save(book);
+        return new ResponseEntity<>(savedBook, HttpStatus.CREATED);
+    }
+
+    // Read All
+    @GetMapping
+    public ResponseEntity<List<Book>> getAllBooks() {
+        List<Book> books = bookRepository.findAll();
+        return new ResponseEntity<>(books, HttpStatus.OK);
+    }
+
+    // Read One
+    @GetMapping("/{id}")
+    public ResponseEntity<Book> getBookById(@PathVariable Long id) {
+        Optional<Book> book = bookRepository.findById(id);
+        return book.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    // Update
+    @PutMapping("/{id}")
+    public ResponseEntity<Book> updateBook(@PathVariable Long id, @RequestBody Book bookDetails) {
+        Optional<Book> bookOptional = bookRepository.findById(id);
+        
+        if (bookOptional.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        
+        Book book = bookOptional.get();
+        book.setTitle(bookDetails.getTitle());
+        book.setAuthor(bookDetails.getAuthor());
+        book.setPublicationYear(bookDetails.getPublicationYear());
+        
+        Book updatedBook = bookRepository.save(book);
+        return new ResponseEntity<>(updatedBook, HttpStatus.OK);
+    }
+
+    // Delete
+    @DeleteMapping("/{id}")
+    public ResponseEntity<HttpStatus> deleteBook(@PathVariable Long id) {
+        try {
+            bookRepository.deleteById(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+}
+Step 6: Configure the Application
+src/main/resources/application.properties:
+
+properties
+# H2 Database Configuration
+spring.datasource.url=jdbc:h2:mem:bookdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+
+# H2 Console
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+# JPA/Hibernate
+spring.jpa.show-sql=true
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+Step 7: Main Application Class
+src/main/java/com/example/bookstore/BookstoreApplication.java:
+
+java
+package com.example.bookstore;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class BookstoreApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(BookstoreApplication.class, args);
+    }
+}
+Step 8: Run and Test the Application
+Start the application by running BookstoreApplication.java
+
+The application will be available at http://localhost:8080
+
+You can access the H2 console at http://localhost:8080/h2-console
+
+JDBC URL: jdbc:h2:mem:bookdb
+
+Username: sa
+
+Password: (leave empty)
+
+Testing the API
+You can use Postman, cURL, or any API client to test the endpoints:
+
+Create a Book (POST)
+
+text
+POST http://localhost:8080/api/books
+Content-Type: application/json
+
+{
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "publicationYear": 1925
+}
+Get All Books (GET)
+
+text
+GET http://localhost:8080/api/books
+Get a Single Book (GET)
+
+text
+GET http://localhost:8080/api/books/1
+Update a Book (PUT)
+
+text
+PUT http://localhost:8080/api/books/1
+Content-Type: application/json
+
+{
+    "title": "The Great Gatsby - Updated",
+    "author": "F. Scott Fitzgerald",
+    "publicationYear": 1925
+}
+Delete a Book (DELETE)
+
+text
+DELETE http://localhost:8080/api/books/1
+Additional Notes
+This is a basic implementation without:
+
+Validation
+
+Exception handling
+
+DTOs (Data Transfer Objects)
+
+Service layer
+
+Security
+
+For a production application, you would want to add these layers and features.
+
+The H2 database is in-memory, so data will be lost when the application stops. For persistence, you would configure a real database like MySQL or PostgreSQL.
